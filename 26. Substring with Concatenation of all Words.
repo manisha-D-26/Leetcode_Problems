@@ -1,0 +1,135 @@
+/**
+ * Note: The returned array must be malloced, assume caller calls free().
+ */
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct Node {
+    char *key;
+    int maxCount;
+    int currentCount;
+} Node;
+
+inline int match_str(char *a, char *b, size_t len) {
+    if (!a || !b)
+        return false;
+    for (int i = 0; i < len; ++i) {
+        if(a[i] != b[i])
+            return false;
+    }
+    return true;
+}
+
+inline size_t hash(char *key, size_t key_length, size_t hash_map_capacity) {
+    size_t hash = 0;
+    size_t i = 0;
+    while (i < key_length) {
+        hash ^= ((size_t)key[i] << ((key[i] + 2 * key[i] * key[i]) % (8 * sizeof(size_t))));
+        ++i;
+    }
+    i = (8 * sizeof(size_t)) >> 1;
+    while (i > 0) {
+        hash ^= hash >> i;
+        i >>= 1;
+    }
+    return hash % hash_map_capacity;
+}
+
+void hash_map_insert(Node *hash_map, size_t hash_map_capacity, char *key, size_t key_size) {
+    size_t initial_index = hash(key, key_size, hash_map_capacity);
+    size_t index = initial_index;
+    do {
+        if (!hash_map[index].key || match_str(hash_map[index].key, key, key_size)) {
+            hash_map[index].key = key;
+            ++(hash_map[index].maxCount);
+            break;
+        }
+        else {
+            index = (index + 1) % hash_map_capacity;
+        }
+    } while(index != initial_index);
+}
+
+inline Node *hash_map_find(Node *hash_map, size_t hash_map_capacity, char *key, size_t key_size) {
+    size_t index = hash(key, key_size, hash_map_capacity);
+    size_t initial_index = index;
+    do {
+        if (!(hash_map[index].key))
+            return NULL;
+        else if (match_str(hash_map[index].key, key, key_size)) {
+            return &hash_map[index];
+        }
+        else {
+            index = (index + 1) % hash_map_capacity;
+        }
+    } while (index != initial_index);
+    return NULL;
+}
+
+inline void hash_map_reset (Node *hash_map, size_t hash_map_size) {
+    for (int i = 0; i < hash_map_size; ++i) {
+        hash_map[i].currentCount = 0;
+    }
+}
+
+int* findSubstring(char* s, char** words, int wordsSize, int* returnSize) {
+    size_t sLen = strlen(s), wLen = strlen(words[0]), maxWindowLen = wLen * wordsSize;
+    #define HASH_MAP_SIZE (2 * wordsSize)
+    Node wordsMap[HASH_MAP_SIZE];
+    memset(wordsMap, 0, HASH_MAP_SIZE * sizeof(Node));
+    for (int i = 0; i < wordsSize; ++i) {
+        hash_map_insert(wordsMap, HASH_MAP_SIZE, words[i], wLen);
+    }
+    int *result = malloc(sLen * sizeof(int));
+    *returnSize = 0;
+    for (int i = 0; i < wLen; ++i) {
+        size_t left = i, right = i;
+        int hasDuplicates = false;
+        int hasInvalidElement = false;
+        hash_map_reset(wordsMap, HASH_MAP_SIZE);
+        while (left < sLen - maxWindowLen + 1 && wLen + left <= sLen) {
+            //If we got some duplicates shrink window from the left until no more duplicates.
+            if (hasDuplicates) {
+                while (hasDuplicates) {
+                    Node *leftNode = hash_map_find(wordsMap, HASH_MAP_SIZE, &s[left], wLen);
+                    if ((leftNode->currentCount)-- > leftNode->maxCount) {
+                        hasDuplicates = false;
+                    }
+                    left += wLen;
+                }
+                continue;
+            }
+            //If we got some invalid element clear the window and set left after this element.
+            else if (hasInvalidElement) {
+                if (right - left > wLen) {
+                    hash_map_reset(wordsMap, HASH_MAP_SIZE);
+                }
+                left = right;
+                hasInvalidElement = false;
+                continue;
+            }
+            //If we are here and right - left == wordsSize then left is an index to window contining next element of the solution.
+            else if (right - left == maxWindowLen) {
+                result[(*returnSize)++] = left;
+                Node *leftNode = hash_map_find(wordsMap, HASH_MAP_SIZE, &s[left], wLen);
+                --(leftNode->currentCount);
+                left += wLen;
+                continue;
+            }
+            //If the window is too short grow it from the right until correct length or invalid state.
+            while (right - left < maxWindowLen && wLen + right <= sLen) {
+                Node *rightNode = hash_map_find(wordsMap, HASH_MAP_SIZE, &s[right], wLen);
+                right += wLen;
+                if (!(rightNode)) {
+                    hasInvalidElement = true;
+                    break;
+                }
+                if (++(rightNode->currentCount) > rightNode->maxCount) {
+                    hasDuplicates = true;
+                    break;
+                }
+            }
+        }
+    }
+    return result;
+}
