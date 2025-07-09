@@ -1,0 +1,132 @@
+int myAtoi(char *s) {
+    if (s == NULL || strlen(s) == 0) return 0;
+
+    int len = strlen(s);
+    int i = 0;
+
+    // Trim leading spaces
+    while (isspace(s[i])) i++;
+
+    char sign = '+';
+    int count = 0;
+    char temp[256] = {0}; // to store number characters
+    int tempIndex = 0;
+
+    for (; i < len; i++) {
+        char c = s[i];
+
+        // Break on invalid symbols
+        if ((c != '+' && c != '-') &&
+            ((c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126))) {
+            break;
+        }
+
+        // Sign appears after digits or already processed
+        if ((tempIndex != 0 || count != 0) && (c == '-' || c == '+')) {
+            break;
+        }
+
+        // Sign repetition like "-+1"
+        if (count != 0 && (c == '-' || c == '+')) {
+            continue;
+        }
+
+        // White space in between
+        if (c == ' ') {
+            break;
+        }
+
+        // First time sign detection
+        if (count == 0) {
+            if (c == '-') {
+                sign = '-';
+                count++;
+                continue;
+            }
+            if (c == '+') {
+                sign = '+';
+                count++;
+                continue;
+            }
+        }
+
+        // Break on letters
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+            break;
+        }
+
+        // Append digits
+        if (isdigit(c)) {
+            temp[tempIndex++] = c;
+        } else {
+            break;
+        }
+    }
+
+    if (tempIndex == 0) return 0;
+
+    // Convert string to integer with overflow handling
+    long result = 0;
+    for (int j = 0; j < tempIndex; j++) {
+        result = result * 10 + (temp[j] - '0');
+
+        if (sign == '-' && -result < INT_MIN) return INT_MIN;
+        if (sign == '+' && result > INT_MAX) return INT_MAX;
+    }
+
+    return (sign == '-') ? -result : result;
+}
+
+7.Palindrome Number.
+
+bool isPalindrome(int x){
+    if(x<0 || x!=0 && x%10 ==0 ) return false;
+    int check=0;
+    while(x>check){
+        check = check*10 + x%10;
+        x/=10;
+    }
+    return (x==check || x==check/10);
+}
+
+8. Regular Expression Matching.
+
+bool match(char* s, char* p) {
+    return (s[0] == p[0]) || (p[0] == '.' && s[0]);
+}
+
+bool isMatch(char * s, char * p){
+    if (!p[0]) return !s[0];
+    if (p[1] == '*') return isMatch(s, p+2) || match(s, p) && isMatch(s+1, p);
+    if (p[0] == '.') return s[0] && isMatch(s+1, p+1);
+    return match(s, p) && isMatch(s+1, p+1);
+}
+
+9. Container With Most Water
+
+int min(int a, int b) {
+    return a < b ? a : b;
+}
+
+int max(int a, int b) {
+    return a > b ? a : b;
+}
+
+int maxArea(int* height, int heightSize) {
+    int maxi = 0;
+    int left = 0;
+    int right = heightSize - 1;
+
+    while(left < right) {
+        int area = min(height[left], height[right]) * (right - left);
+        maxi = max(maxi, area);
+        
+        if(height[left] < height[right]) {
+            left++;
+        } else {
+            right--;
+        }
+    }
+
+    return maxi;
+}
