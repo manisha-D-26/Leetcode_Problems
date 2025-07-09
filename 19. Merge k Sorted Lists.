@@ -1,0 +1,46 @@
+void set_next(struct ListNode **head, struct ListNode **cursor, struct ListNode **next) {
+  if (*cursor == NULL) {
+    *cursor = *next;
+    *head = *cursor;
+  }
+  else {
+    (*cursor) -> next = *next;
+    *cursor = (*cursor) -> next;
+  }
+  *next = (*next) -> next;
+}
+
+struct ListNode* mergeTwoLists(struct ListNode* list1, struct ListNode* list2) {
+  struct ListNode *head = NULL;
+  struct ListNode *cursor = NULL;
+
+  while (list1) {
+    if (list2) {
+      if (list1 -> val < list2 -> val)
+        set_next(&head, &cursor, &list1);
+      else
+        set_next(&head, &cursor, &list2);
+    }
+    else
+      set_next(&head, &cursor, &list1);
+  }
+  while (list2)
+    set_next(&head, &cursor, &list2);
+  return head;
+}
+
+struct ListNode* merge_lists(struct ListNode** lists, int left, int right) {
+  if (left == right) {
+    return lists[left];
+  }
+  int mid = (left + right)/2;
+  struct ListNode* list1 = merge_lists(lists, left, mid);
+  struct ListNode* list2 = merge_lists(lists, mid+1, right);
+  return mergeTwoLists(list1, list2);
+}
+
+struct ListNode* mergeKLists(struct ListNode** lists, int listsSize) {
+  if (!listsSize)
+    return NULL;
+  return merge_lists(lists, 0, listsSize-1);
+}
